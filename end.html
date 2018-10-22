@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="style.css">
+<style>
+#centeredArea {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+</style>
+</head>
+<body>
+
+<script>
+var decoded = decodeURIComponent(window.location.search);
+pID = decoded.substring(decoded.indexOf('=')+1);
+nextTask = function(){
+    window.location.href = '../MST/main.html?pID=' + pID;
+}
+</script>
+<center>
+<div id='centeredArea'>
+<p class="bigBr"></p>
+<p class="dialog">That was the end of that game.<br>Click to move on to the next one.</p>
+<button onclick='nextTask()'>Next game</button>
+</div>
+</center>
+
+</body>
+</html>
