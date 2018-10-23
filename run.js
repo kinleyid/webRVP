@@ -381,7 +381,8 @@ function elimSpuriousTargs(gStimArray, gIndicatorArray, targArray) {
     var stimArray = gStimArray.slice(0); // Local copies of global variables
     var indicatorArray = gIndicatorArray.slice(0);
     var stimIdx, targIdx, currSeq, currTarg, currIndic, tbrIdx, availableReplacements; // Variables for level 1
-    var stimIdx2, targIdx2, candIdx, unavailableReplacements, candRep, candStimArray, flag, startIdx; // Variables for level 2
+    var stimIdx2, targIdx2, candIdx, unavailableReplacements, candRep, candStimArray, flag2, startIdx; // Variables for level 2
+    var tbrIdxs, subTbrIdx, tbrIdx, flag1; // These names really need to be changed at some point
     for (targIdx = 0; targIdx < targArray.length; targIdx++) { // Cycle through target sequences to detect spurious occurrences
         currTarg = targArray[targIdx];
         for (stimIdx = 0; stimIdx < stimArray.length; stimIdx++) { // Inspect entire length of stimArray
@@ -389,41 +390,45 @@ function elimSpuriousTargs(gStimArray, gIndicatorArray, targArray) {
             currIndic = indicatorArray.slice(0).splice(stimIdx, currTarg.length);
             if (arrayCmp(currSeq, currTarg) && currIndic.includes(false)) { // Spurious sequence detected
                 tbrIdxs = findIndices(currIndic, false);
-                for (tbrIdx = 
-                tbrIdx = currIndic.indexOf(false) + stimIdx; // Index of element to be replaced in stimArray
-                availableReplacements = legalDigits;
-                unavailableReplacements = getLocalUniques(stimArray, stimIdx, noRptsWithin);
-                for (candIdx = 0; candIdx < availableReplacements.length; candIdx++) { // Find candidates that would introduce a spurious target sequence
-                    candStimArray = stimArray.slice(0);
-                    candRep = availableReplacements[candIdx];
-                    candStimArray[tbrIdx] = candRep; 
-                    flag = false;
-                    for (targIdx2 = 0; targIdx2 < targArray.length; targIdx2++) { // Cycle through target sequences to test candidate replacement
-                        if (flag) {
-                            break;
-                        }
-                        currTarg2 = targArray[targIdx2];
-                        startIdx = Math.max(0, tbrIdx - currTarg2.length + 1);
-                        for (stimIdx2 = startIdx; stimIdx2 <= tbrIdx; stimIdx2++) {
-                            if (arrayCmp(currTarg2, candStimArray.slice(0).splice(stimIdx2, currTarg2.length))) { // A spurious target would be introduced
-                                unavailableReplacements.push(candRep);
-                                flag = true; // Go to next candidate replacement digit
+                flag1 = false;
+                for (subTbrIdx = 0; subTbrIdx < tbrIdxs.length; subTbrIdx++) {
+                    if (flag1) {
+                        break;
+                    }
+                    tbrIdx = tbrIdxs[subTbrIdx];
+                    availableReplacements = legalDigits;
+                    unavailableReplacements = getLocalUniques(stimArray, stimIdx, noRptsWithin);
+                    for (candIdx = 0; candIdx < availableReplacements.length; candIdx++) { // Find candidates that would introduce a spurious target sequence
+                        candStimArray = stimArray.slice(0);
+                        candRep = availableReplacements[candIdx];
+                        candStimArray[tbrIdx] = candRep; 
+                        flag2 = false;
+                        for (targIdx2 = 0; targIdx2 < targArray.length; targIdx2++) { // Cycle through target sequences to test candidate replacement
+                            if (flag2) {
                                 break;
+                            }
+                            currTarg2 = targArray[targIdx2];
+                            startIdx = Math.max(0, tbrIdx - currTarg2.length + 1);
+                            for (stimIdx2 = startIdx; stimIdx2 <= tbrIdx; stimIdx2++) {
+                                if (arrayCmp(currTarg2, candStimArray.slice(0).splice(stimIdx2, currTarg2.length))) { // A spurious target would be introduced
+                                    unavailableReplacements.push(candRep);
+                                    flag2 = true; // Go to next candidate replacement digit
+                                    break;
+                                }
                             }
                         }
                     }
-                }
-                // The digits that would spurious sequences are now stored in unavailableReplacements
-                var unavailableIdx;
-                var currUnavail;
-                for (unavaialbeIdx = 0; unavailableIdx < unavailableReplacements.length; unavailableIdx++) {
-                    currUnavail = unavaiableReplacements[unavailableIdx];
-                    availableReplacements.splice(availableReplacements.indexOf(currUnavail));
-                }
-                if (availableElements.length > 0) {
-                    stimArray[stimIdx] = sample(availableReplacements, 1)[0];
-                } else {
-
+                    // The digits that would spurious sequences are now stored in unavailableReplacements
+                    var unavailableIdx;
+                    var currUnavail;
+                        for (unavaialbeIdx = 0; unavailableIdx < unavailableReplacements.length; unavailableIdx++) {
+                        currUnavail = unavaiableReplacements[unavailableIdx];
+                        availableReplacements.splice(availableReplacements.indexOf(currUnavail));
+                    }
+                    if (availableReplacements.length > 0) {
+                        stimArray[stimIdx] = sample(availableReplacements, 1)[0];
+                        flag1 = true; // Go to next element in stimArray
+                    }
                 }
             }
         }
