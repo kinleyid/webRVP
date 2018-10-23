@@ -20,6 +20,7 @@ var allowPresses;
 var stim = [];
 var minTargSep = 3; // Minimum separation between the end of one target and the beginning of another
 var noRptsWitin = 2; // No repeated digits within this many
+var noRptsWithin = 2;
 var practiceTargTypes = [[3,5,7]];
 var blockwise_nPracticeDgts = [7,8,7,8];
 var blockwise_nPracticeTargs = [1,1,1,1];
@@ -287,7 +288,8 @@ function startTask(){
             stim.isTarg = stim.isTarg.concat(tempStim.isTarg);
         }
     }
-    elimSpuriousTargs(stim.digits, stim.isTarg, taskTargTypes);
+    stim.digits = elimRepeats(stim.digits, stim.isTarg, noRptsWithin);
+    stim.digits = elimSpuriousTargs(stim.digits, stim.isTarg, taskTargTypes);
     colourDigits = false;
     underlineDigits = false;
     beepForCorrect = false;
@@ -323,19 +325,61 @@ function initializeDigits(nTargs,nDigits,targTypes){
             }
         }
     }
-    var possibleDigits = [2,3,4,5,6,7,8,9], currPossibleDigits = [];
-    var k, looksLikeTarg;
     for(i = 0; i < localDigits.length; i++){
         if(!isTarg[i]){
-            currPossibleDigits = possibleDigits.filter(x => !localDigits.slice(i-noRptsWitin+1,i+noRptsWitin).includes(x));
-            localDigits[i] = sample(currPossibleDigits,1)[0];
+            localDigits[i] = sample(legalDigits,1)[0];
         }
     }
     this.digits = localDigits;
     this.isTarg = isTarg;
 }
 
-function elimSpuriousTargs(stimArray, indicatorArray, targArray) {
+function elimRepeats(gStimArray, indicatorArray, noRptsWithin) {
+    var stimArray = gStimArray.slice(0); // Local copy of global variable
+    var stimIdx, localElements, unavailableElements, availableElements, preIdx, postIdx;
+    for (stimIdx = 0; stimIdx < stimArray.length; stimIdx++) {
+        if (!indicatorArray[stimIdx]) { // Don't alter target sequences
+            unavailableElements = getLocalUniques(stimArray, stimIdx, noRptsWithin);
+            if (unavailableElements.includes(stimArray[stimIdx])) {
+                availableElements = legalDigits.slice(0);
+                var i;
+                for (i = 0; i < unavailableElements.length; i++) {
+                    availableElements.splice(availableElements.indexOf(unavailableElements[i]), 1);
+                }
+                stimArray[stimIdx] = sample(availableElements, 1)[0];
+            }
+        }
+    }
+    return(stimArray);
+}
+
+
+
+function uniqueElements(inArray) {
+    var i, collection = new Array();
+    for (i = 0; i < inArray.length; i++) {
+        if (!collection.includes(inArray[i])) {
+            collection.push(inArray[i]);
+        }
+    }
+    return(collection);
+}
+
+function getLocalUniques(inArray, idx, n) {
+    var preIdx = idx - n, localElements = new Array();
+    if (preIdx >= 0 && preIdx + n - 1 < idx) {
+        localElements = localElements.concat(inArray.slice(0).splice(preIdx, n));
+    }
+    postIdx = idx + 1;
+    if (postIdx < inArray.length) {
+        localElements = localElements.concat(inArray.slice(0).splice(postIdx, n));
+    }
+    return(uniqueElements(localElements));
+}
+
+function elimSpuriousTargs(gStimArray, gIndicatorArray, targArray) {
+    var stimArray = gStimArray.slice(0); // Local copies of global variables
+    var indicatorArray = gIndicatorArray.slice(0);
     var stimIdx, targIdx, currSeq, currTarg, currIndic, tbrIdx, availableReplacements; // Variables for level 1
     var stimIdx2, targIdx2, candIdx, unavailableReplacements, candRep, candStimArray, flag, startIdx; // Variables for level 2
     for (targIdx = 0; targIdx < targArray.length; targIdx++) { // Cycle through target sequences to detect spurious occurrences
@@ -344,9 +388,11 @@ function elimSpuriousTargs(stimArray, indicatorArray, targArray) {
             currSeq = stimArray.slice(0).splice(stimIdx, currTarg.length);
             currIndic = indicatorArray.slice(0).splice(stimIdx, currTarg.length);
             if (arrayCmp(currSeq, currTarg) && currIndic.includes(false)) { // Spurious sequence detected
+                tbrIdxs = findIndices(currIndic, false);
+                for (tbrIdx = 
                 tbrIdx = currIndic.indexOf(false) + stimIdx; // Index of element to be replaced in stimArray
                 availableReplacements = legalDigits;
-                unavailableReplacements = new Array();
+                unavailableReplacements = getLocalUniques(stimArray, stimIdx, noRptsWithin);
                 for (candIdx = 0; candIdx < availableReplacements.length; candIdx++) { // Find candidates that would introduce a spurious target sequence
                     candStimArray = stimArray.slice(0);
                     candRep = availableReplacements[candIdx];
@@ -374,10 +420,15 @@ function elimSpuriousTargs(stimArray, indicatorArray, targArray) {
                     currUnavail = unavaiableReplacements[unavailableIdx];
                     availableReplacements.splice(availableReplacements.indexOf(currUnavail));
                 }
-                stimArray[stimIdx] = sample(availableReplacements, 1)[0];
+                if (availableElements.length > 0) {
+                    stimArray[stimIdx] = sample(availableReplacements, 1)[0];
+                } else {
+
+                }
             }
         }
     }
+    return(stimArray);
 }
 
 function sample(inArray,k) {// Sample k elements without replacement
@@ -416,11 +467,12 @@ function isMember(array1, array2) {
     return false;
 }
 
-function findElement(element, array) {
-    var i;
+function findIndices(array, element) {
+    var i, indices = new Array();
     for (i = 0; i < array.length; i++) {
         if (array[i] == element) {
-            return i;
+            indices.push(i);
         }
     }
+    return(indices);
 }
