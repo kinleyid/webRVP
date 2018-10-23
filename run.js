@@ -135,6 +135,50 @@ function displayFeedback(text){
     }, nTextMs);
 }
 
+function start() {
+    feedbackTextArea.textContent = '';
+    ALL.style.cursor = 'none';
+    if (gamify) {
+        score = 0;
+        feedbackText = true;
+    }
+    stim.digits = stim.isTarg = [];
+    var i;
+    if (isPractice) {
+        outputText += performance.now().toFixed(nDecPts) + ',' + 'Practice start' + ',NewLine,';
+        for(i = 0; i < blockwise_nPracticeDgts.length; i++){
+            tempStim = new initializeDigits(blockwise_nPracticeTargs[i],blockwise_nPracticeDgts[i],practiceTargTypes);
+            stim.digits = stim.digits.concat(tempStim.digits);
+            stim.isTarg = stim.isTarg.concat(tempStim.isTarg);
+        }
+    } else {
+        outputText += performance.now().toFixed(nDecPts) + ',' + 'Task start' + ',NewLine,';
+        colourDigits = false;
+        underlineDigits = false;
+        stim = new initializeDigits(blockwise_nTaskTargs[0],blockwise_nTaskDgts[0],taskTargTypes);
+        if(blockwise_nTaskDgts.length > 1){
+            var i, tempStim;
+            for(i = 1; i < blockwise_nTaskDgts.length; i++){
+                tempStim = new initializeDigits(blockwise_nTaskTargs[i],blockwise_nTaskDgts[i],taskTargTypes);
+                stim.digits = stim.digits.concat(tempStim.digits);
+                stim.isTarg = stim.isTarg.concat(tempStim.isTarg);
+            }
+        }
+    }
+    stim.digits = elimRepeats(stim.digits, stim.isTarg, noRptsWithin);
+    stim.digits = elimSpuriousTargs(stim.digits, stim.isTarg, taskTargTypes);
+    dialogArea.style.display = 'none';
+    digitDisplayArea.style.display = 'block';
+    targetDisplayArea.style.display = 'block';
+    feedbackTextArea.style.display = 'block';
+    feedbackTextArea.textContent = '';
+    if(preFixationMs > 0){
+        setTimeout(fixationCross, preFixationMs);
+    } else {
+        fixationCross();
+    }
+}
+
 function startPractice(){
     outputText += performance.now().toFixed(nDecPts) + ',' + 'Practice start' + ',NewLine,';
     score = 0;
@@ -156,119 +200,6 @@ function startPractice(){
     digitDisplayArea.style.display = 'block';
     targetDisplayArea.style.display = 'block';
     feedbackTextArea.style.display = 'block';
-    if(preFixationMs > 0){
-        setTimeout(fixationCross, preFixationMs);
-    } else {
-        fixationCross();
-    }
-}
-
-function fixationCross(){
-    digitDisplayP.style.color = 'black';
-    digitDisplayP.style.textDecoration = 'none';
-    digitDisplayP.innerHTML = '\u2022';
-    setTimeout(function() {
-        if(postFixationMs > 0){
-            digitDisplayP.innerHTML = '';
-            setTimeout(showDigit, postFixationMs);
-        } else {
-            showDigit();
-        }
-    }, fixationCrossMs);
-}
-
-function showDigit(){
-    if(performance.now() - lastTargTime > sayTooLateWithin){
-        alreadyPressed = false;
-    }
-    if(frameCount == 0){
-        allowPresses = true;
-        if(isPractice){
-            if(stim.isTarg[digitCount]){
-                digitDisplayP.style.color = 'yellow';
-                digitDisplayP.style.textDecoration = 'underline';
-                digitDisplayP.style.textDecorationColor = 'red';
-                if(!stim.isTarg[digitCount+1]){
-                        feedbackTextArea.innerHTML = 'Press now!';
-                }
-            } else {
-                digitDisplayP.style.color = 'black';
-                digitDisplayP.style.textDecoration = 'none';
-                if(feedbackTextArea.innerHTML == 'Press now!'){
-                    feedbackTextArea.innerHTML = '';
-                }
-            }
-        }
-        digitDisplayP.innerHTML = stim.digits[digitCount];
-    }
-    if(frameCount == nDigitFrames - 1){
-        frameCount = 0;
-        digitCount++;
-        if(nBlankFramesAfterDigit > 0){
-            window.requestAnimationFrame(showBlank);
-        } else { // Still have to get out of test if no call to 
-            if(digitCount == stim.digits.length){
-                if(isPractice){
-                    feedbackTextArea.innerHTML = '';
-                    digitDisplayP.innerHTML = '';
-                    digitDisplayP.style.color = 'black';
-                    digitDisplayP.style.textDecoration = 'none';
-                    setTimeout(afterPracticeScreen,sayTooLateWithin);
-                } else {
-                    setTimeout(saveData,sayTooLateWithin);
-                }
-            } else {
-                window.requestAnimationFrame(showDigit);
-            }
-        }
-    } else {
-        frameCount++;
-        window.requestAnimationFrame(showDigit);
-    }
-}
-
-function showBlank(){
-    if(frameCount == 0){
-        digitDisplayP.innerHTML = '';
-    }
-    if(frameCount == nBlankFramesAfterDigit - 1){
-        frameCount = 0;
-        if(digitCount == stim.digits.length){
-            if(isPractice){
-                setTimeout(afterPracticeScreen,sayTooLateWithin);
-            } else {
-                setTimeout(function(){
-                    saveData();
-                },sayTooLateWithin);
-            }
-        } else {
-            window.requestAnimationFrame(showDigit);
-        }
-    }
-}
-
-function afterPracticeScreen(){
-    score = 0;
-    scoreArea.innerHTML = "Score: " + score;
-    allowPresses = false;
-    ALL.style.cursor = 'default';
-    dialogArea.style.display = 'block';
-    digitDisplayArea.style.display = 'none';
-    targetDisplayArea.style.display = 'none';
-    feedbackTextArea.style.display = 'none';
-    dialogArea.innerHTML = "<center>\
-                            <p class='dialog'>That was the end of the practice round.<br/>\
-                            Now you'll have to look out for 3 sequences<br/>\
-                            (they will be shown off to the side in case you forget them):<br/><br/>\
-                            3 5 7<br/>\
-                            2 4 6<br/>\
-                            4 6 8<br/><br/>\
-                            Press space once you've seen any of them<br/>\
-                            (i.e. press space as soon as you see the last digit).<br/>\
-                            React as fast as you can, but avoid making mistakes.</br>\
-                            This time the game won't tell you when you're seeing a sequence.\
-                            Click to start the game for real.</p><button onclick='startTask()'>Start game</button>\
-                            </center>";
 }
 
 function startTask(){
@@ -303,6 +234,103 @@ function startTask(){
     } else {
         window.requestAnimationFrame(fixationCross);
     }
+}
+
+function fixationCross(){
+    digitDisplayP.style.color = 'black';
+    digitDisplayP.style.textDecoration = 'none';
+    digitDisplayP.innerHTML = '\u2022';
+    setTimeout(function() {
+        if(postFixationMs > 0){
+            digitDisplayP.innerHTML = '';
+            setTimeout(showDigit, postFixationMs);
+        } else {
+            showDigit();
+        }
+    }, fixationCrossMs);
+}
+
+function showDigit(){
+    if(performance.now() - lastTargTime > sayTooLateWithin){
+        alreadyPressed = false;
+    }
+    allowPresses = true;
+    if(isPractice){
+        if(stim.isTarg[digitCount]){
+            digitDisplayP.style.color = 'yellow';
+            digitDisplayP.style.textDecoration = 'underline';
+            digitDisplayP.style.textDecorationColor = 'red';
+            if(!stim.isTarg[digitCount+1]){
+                feedbackTextArea.textContent = 'Press now!';
+            }
+        } else {
+            digitDisplayP.style.color = 'black';
+            digitDisplayP.style.textDecoration = 'none';
+            if(feedbackTextArea.textContent == 'Press now!'){
+                feedbackTextArea.textContent = '';
+            }
+        }
+    }
+    digitDisplayP.textContent = stim.digits[digitCount];
+    digitCount++;
+    presentationTime = performance.now();
+    if(!isNaN(Number(digitDisplayP.textContent)) && digitDisplayP.textContent != ""){
+        outputText += presentationTime.toFixed(nDecPts) + ',' + digitDisplayP.textContent + ',NewLine,';
+        if(stim.isTarg[digitCount] && !stim.isTarg[digitCount+1]){
+            lastTargTime = presentationTime;
+        }
+    }
+    setTimeout(interTrialCtrlFunc, digitMs);
+}
+
+function interTrialCtrlFunc() {
+    if (digitCount == stim.digits.length) {
+        if (isPractice) {
+            feedbackTextArea.textContent = '';
+            digitDisplayP.textContent = '';
+            digitDisplayP.style.color = 'black';
+            digitDisplayP.style.textDecoration = 'none';
+            setTimeout(afterPracticeScreen,sayTooLateWithin);
+        } else {
+            showBlank();
+            setTimeout(saveData, sayTooLateWithin);
+        }
+    } else {
+        if (postDigitMs > 0) {
+            showBlank();
+            setTimeout(showDigit, postDigitMs);
+        } else {
+            showDigit();
+        }
+    }
+}
+
+function showBlank(){ // Add to this, otherwise not worth having as its own function
+    digitDisplayP.textContent = '';
+}
+
+function afterPracticeScreen(){
+    score = 0;
+    scoreArea.textContent = "Score: " + score;
+    allowPresses = false;
+    ALL.style.cursor = 'default';
+    dialogArea.style.display = 'block';
+    digitDisplayArea.style.display = 'none';
+    targetDisplayArea.style.display = 'none';
+    feedbackTextArea.style.display = 'none';
+    dialogArea.innerHTML = "<center>\
+                            <p class='dialog'>That was the end of the practice round.<br/>\
+                            Now you'll have to look out for 3 sequences<br/>\
+                            (they will be shown off to the side in case you forget them):<br/><br/>\
+                            3 5 7<br/>\
+                            2 4 6<br/>\
+                            4 6 8<br/><br/>\
+                            Press space once you've seen any of them<br/>\
+                            (i.e. press space as soon as you see the last digit).<br/>\
+                            React as fast as you can, but avoid making mistakes.</br>\
+                            This time the game won't tell you when you're seeing a sequence.\
+                            Click to start the game for real.</p><button onclick='startTask()'>Start game</button>\
+                            </center>";
 }
 
 function initializeDigits(nTargs,nDigits,targTypes){
