@@ -5,10 +5,15 @@ var filename = pID + "RVP";
 
 // For 100 digits/minute, per cantab specs, make these two sum to 36
 var nBlanksBeforeFixationCross = 0;
+var preFixationMs = 0;
 var nFixationCrossFrames = 120;
+var fixationMs = 2;
 var nBlanksAfterFixationCross = 36;
+var postFixationMs = 600;
 var nDigitFrames = 36;
+var digitMs = 600;
 var nBlankFramesAfterDigit = 0;
+var postDigitMs = 0;
 var score;
 var allowNegativeScores = false;
 var nPointsPerCorrect = 40;
@@ -151,33 +156,25 @@ function startPractice(){
     digitDisplayArea.style.display = 'block';
     targetDisplayArea.style.display = 'block';
     feedbackTextArea.style.display = 'block';
-    if(nBlanksBeforeFixationCross > 0){
-        window.requestAnimationFrame(function(){wait(nBlanksBeforeFixationCross,fixationCross)});
+    if(preFixationMs > 0){
+        setTimeout(fixationCross, preFixationMs);
     } else {
-        window.requestAnimationFrame(fixationCross);
+        fixationCross();
     }
 }
 
 function fixationCross(){
-    if(frameCount == 0){
-        digitDisplayP.style.color = 'black';
-        digitDisplayP.style.textDecoration = 'none';
-        digitDisplayP.innerHTML = '\u2022';
-    }
-    if(frameCount == nFixationCrossFrames - 1){
-        frameCount = 0;
-        if(nBlanksAfterFixationCross > 0){
-            window.requestAnimationFrame(function(){
-                digitDisplayP.innerHTML = '';
-                wait(nBlanksAfterFixationCross,showDigit);
-            });
+    digitDisplayP.style.color = 'black';
+    digitDisplayP.style.textDecoration = 'none';
+    digitDisplayP.innerHTML = '\u2022';
+    setTimeout(function() {
+        if(postFixationMs > 0){
+            digitDisplayP.innerHTML = '';
+            setTimeout(showDigit, postFixationMs);
         } else {
-            window.requestAnimationFrame(showDigit);
+            showDigit();
         }
-    } else {
-        frameCount++;
-        window.requestAnimationFrame(fixationCross);
-    }
+    }, fixationCrossMs);
 }
 
 function showDigit(){
