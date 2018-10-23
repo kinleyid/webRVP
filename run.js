@@ -250,15 +250,15 @@ function afterPracticeScreen() {
     digitDisplayArea.style.display = 'none';
     targetDisplayArea.style.display = 'none';
     feedbackTextArea.style.display = 'none';
+    while (dialogArea.lastChild) {
+        dialogArea.removeChild(dialogArea.lastChild);
+    }
     var centered = document.createElement('center');
-    var startButton = document.createElement('button');
-    startButton.textContent = 'Start game';
-    startButton.onclick = start;
     instructionsArray =
         [
             "That was the end of the practice round",
             "Now you'll have to look out for 3 sequences",
-            "(they will be shown off to the side in case you forget them)"
+            "(they will be shown off to the side in case you forget them)",
             "3 5 7",
             "2 4 6",
             "4 6 8",
@@ -269,25 +269,17 @@ function afterPracticeScreen() {
             "Click to start the game for real"
         ];
     var i, currInstructions;
-    for (i = 0; i < instructionsArray; i++) {
+    for (i = 0; i < instructionsArray.length; i++) {
         currInstructions = document.createElement('p');
         currInstructions.className = 'dialog';
         currInstructions.textContent = instructionsArray[i];
         centered.appendChild(currInstructions);
     }
-    dialogArea.innerHTML = "<center>\
-                            <p class='dialog'>That was the end of the practice round.<br/>\
-                            Now you'll have to look out for 3 sequences<br/>\
-                            (they will be shown off to the side in case you forget them):<br/><br/>\
-                            3 5 7<br/>\
-                            2 4 6<br/>\
-                            4 6 8<br/><br/>\
-                            Press space once you've seen any of them<br/>\
-                            (i.e. press space as soon as you see the last digit).<br/>\
-                            React as fast as you can, but avoid making mistakes.</br>\
-                            This time the game won't tell you when you're seeing a sequence.\
-                            Click to start the game for real.</p><button onclick='start()'>Start game</button>\
-                            </center>";
+    var startButton = document.createElement('button');
+    startButton.textContent = 'Start game';
+    startButton.onclick = start;
+    centered.appendChild(startButton);
+    dialogArea.appendChild(centered);
 }
 
 function initializeDigits(nTargs,nDigits,targTypes) {
