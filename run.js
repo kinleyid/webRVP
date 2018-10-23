@@ -26,6 +26,7 @@ var blockwise_nPracticeTargs = [1,1,1,1];
 var taskTargTypes = [[3,5,7],[2,4,6],[4,6,8]];
 var blockwise_nTaskDgts = [200,200];
 var blockwise_nTaskTargs = [16,16];
+var legalDigits = [2,3,4,5,6,7,8,9];
 
 // Variables governing the type of feedback displayed
 var colourDigits = true;
@@ -142,6 +143,7 @@ function startPractice(){
         stim.digits = stim.digits.concat(tempStim.digits);
         stim.isTarg = stim.isTarg.concat(tempStim.isTarg);
     }
+    elimSpuriousTargs(stim.digits, stim.isTarg, practiceTargTypes);
     targetDisplayArea.children[1].style.visibility = 'hidden';
     targetDisplayArea.children[2].style.visibility = 'hidden';
     dialogArea.style.display = 'none';
@@ -285,6 +287,7 @@ function startTask(){
             stim.isTarg = stim.isTarg.concat(tempStim.isTarg);
         }
     }
+    elimSpuriousTargs(stim.digits, stim.isTarg, taskTargTypes);
     colourDigits = false;
     underlineDigits = false;
     beepForCorrect = false;
@@ -325,20 +328,6 @@ function initializeDigits(nTargs,nDigits,targTypes){
     for(i = 0; i < localDigits.length; i++){
         if(!isTarg[i]){
             currPossibleDigits = possibleDigits.filter(x => !localDigits.slice(i-noRptsWitin+1,i+noRptsWitin).includes(x));
-            for(j = 0; j < targTypes.length; j++){ // Make sure we aren't accidentally making one of the target sequences occur
-                looksLikeTarg = true;
-                for(k = 1; k < targTypes[j].length; k++){
-                    if(localDigits[i-k] != targTypes[j][targTypes[j].length-1-k]){
-                        looksLikeTarg = false;
-                        break;
-                    }
-                }
-                if(looksLikeTarg){
-                    if(currPossibleDigits.includes(targTypes[j][targTypes[j].length-1])){
-                        currPossibleDigits.splice(currPossibleDigits.indexOf(targTypes[j][targTypes[j].length-1]),1);
-                    }
-                }
-            }
             localDigits[i] = sample(currPossibleDigits,1)[0];
         }
     }
@@ -346,6 +335,50 @@ function initializeDigits(nTargs,nDigits,targTypes){
     this.isTarg = isTarg;
 }
 
+function elimSpuriousTargs(stimArray, indicatorArray, targArray) {
+    var stimIdx, targIdx, currSeq, currTarg, currIndic, tbrIdx, availableReplacements; // Variables for level 1
+    var stimIdx2, targIdx2, candIdx, unavailableReplacements, candRep, candStimArray, flag, startIdx; // Variables for level 2
+    for (targIdx = 0; targIdx < targArray.length; targIdx++) { // Cycle through target sequences to detect spurious occurrences
+        currTarg = targArray[targIdx];
+        for (stimIdx = 0; stimIdx < stimArray.length; stimIdx++) { // Inspect entire length of stimArray
+            currSeq = stimArray.slice(0).splice(stimIdx, currTarg.length);
+            currIndic = indicatorArray.slice(0).splice(stimIdx, currTarg.length);
+            if (arrayCmp(currSeq, currTarg) && currIndic.includes(false)) { // Spurious sequence detected
+                tbrIdx = currIndic.indexOf(false) + stimIdx; // Index of element to be replaced in stimArray
+                availableReplacements = legalDigits;
+                unavailableReplacements = new Array();
+                for (candIdx = 0; candIdx < availableReplacements.length; candIdx++) { // Find candidates that would introduce a spurious target sequence
+                    candStimArray = stimArray.slice(0);
+                    candRep = availableReplacements[candIdx];
+                    candStimArray[tbrIdx] = candRep; 
+                    flag = false;
+                    for (targIdx2 = 0; targIdx2 < targArray.length; targIdx2++) { // Cycle through target sequences to test candidate replacement
+                        if (flag) {
+                            break;
+                        }
+                        currTarg2 = targArray[targIdx2];
+                        startIdx = Math.max(0, tbrIdx - currTarg2.length + 1);
+                        for (stimIdx2 = startIdx; stimIdx2 <= tbrIdx; stimIdx2++) {
+                            if (arrayCmp(currTarg2, candStimArray.slice(0).splice(stimIdx2, currTarg2.length))) { // A spurious target would be introduced
+                                unavailableReplacements.push(candRep);
+                                flag = true; // Go to next candidate replacement digit
+                                break;
+                            }
+                        }
+                    }
+                }
+                // The digits that would spurious sequences are now stored in unavailableReplacements
+                var unavailableIdx;
+                var currUnavail;
+                for (unavaialbeIdx = 0; unavailableIdx < unavailableReplacements.length; unavailableIdx++) {
+                    currUnavail = unavaiableReplacements[unavailableIdx];
+                    availableReplacements.splice(availableReplacements.indexOf(currUnavail));
+                }
+                stimArray[stimIdx] = sample(availableReplacements, 1)[0];
+            }
+        }
+    }
+}
 
 function sample(inArray,k) {// Sample k elements without replacement
 	var arrayToSubsample = inArray.slice(0);// Don't alter original array
@@ -357,4 +390,37 @@ function sample(inArray,k) {// Sample k elements without replacement
 		arrayToSubsample.splice(currIdx,1);
 	}
     return outArray;
+}
+
+function arrayCmp(array1, array2) {
+    if (array1.length != array2.length) {
+        return false;
+    }
+    var i, returnVal = true;
+    for (i = 0; i < array1.length; i++) {
+        if (array1[i] != array2[i]) {
+            returnVal = false;
+            break;
+        }
+    }
+    return returnVal;
+}
+
+function isMember(array1, array2) {
+    var i;
+    for (i = 0; i < array2.length; i++) {
+        if(arrayCmp(array1, array2.slice(0).splice(i, array1.length))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function findElement(element, array) {
+    var i;
+    for (i = 0; i < array.length; i++) {
+        if (array[i] == element) {
+            return i;
+        }
+    }
 }
