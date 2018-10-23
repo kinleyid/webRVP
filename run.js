@@ -256,16 +256,12 @@ function afterPracticeScreen() {
     var centered = document.createElement('center');
     instructionsArray =
         [
-            "That was the end of the practice round",
-            "Now you'll have to look out for 3 sequences",
-            "(they will be shown off to the side in case you forget them)",
+            "That was the end of the practice round. Now you'll have to look out for 3 sequences (they will be shown off to the side in case you forget them)",
             "3 5 7",
             "2 4 6",
             "4 6 8",
-            "Press space as soon as you've seen any of them",
-            "(i.e. press space as soon as you see the last digit)",
-            "React as fast as you can, but avoid making mistakes",
-            "This time the game won't tell you when you're seeing a sequence",
+            "Press space as soon as you've seen any of them (i.e. press space as soon as you see the last digit).",
+            "React as fast as you can, but avoid making mistakes. This time the game won't tell you when you're seeing a sequence.",
             "Click to start the game for real"
         ];
     var i, currInstructions;
