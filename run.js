@@ -6,13 +6,9 @@ var filename = pID + "RVP";
 // For 100 digits/minute, per cantab specs, make these two sum to 36
 var nBlanksBeforeFixationCross = 0;
 var preFixationMs = 0;
-var nFixationCrossFrames = 120;
-var fixationMs = 2;
-var nBlanksAfterFixationCross = 36;
+var fixationMs = 2000;
 var postFixationMs = 600;
-var nDigitFrames = 36;
 var digitMs = 600;
-var nBlankFramesAfterDigit = 0;
 var postDigitMs = 0;
 var score;
 var allowNegativeScores = false;
@@ -43,6 +39,8 @@ var feedbackText = true;
 var pointsFeedback = true;
 var nTextMs = 1000;
 
+var gamify = true;
+
 var nDecPts = 3;
 
 var ALL = document.getElementsByTagName("html")[0];
@@ -58,26 +56,12 @@ var frameCount = 0;
 var digitCount = 0;
 var score;
 
-var isPractice;
+var isPractice = true; // Set to false to eliminate the practice round
 
 var lastTargTime;
 var givePosFeedbackWithin = 1800;// ms
 sayTooLateWithin = 2500;
 var outputText = 'Time,Event,NewLine,';
-
-var mutationObserver = new MutationObserver(function(){
-    presentationTime = performance.now();
-    if(!isNaN(Number(digitDisplayP.innerHTML)) && digitDisplayP.innerHTML != ""){
-        outputText += presentationTime.toFixed(nDecPts) + ',' + digitDisplayP.innerHTML + ',NewLine,';
-        if(stim.isTarg[digitCount] && !stim.isTarg[digitCount+1]){
-            lastTargTime = presentationTime;
-        }
-    }
-});
-
-mutationObserver.observe(digitDisplayP, {
-    childList: true
-});
 
 window.onkeydown = window.onTouch = function(e){
     // Add key press time to event log. Don't worry about whether the response was made quickly enough
@@ -88,7 +72,7 @@ window.onkeydown = window.onTouch = function(e){
                 alreadyPressed = true;
                 if(e.timeStamp - lastTargTime < givePosFeedbackWithin){
                     score += nPointsPerCorrect;
-                    scoreArea.innerHTML = "Score: " + score;
+                    scoreArea.textContent = "Score: " + score;
                     displayFeedback('Correct!');
                 } else {
                     score -= nPointsPerIncorrect;
@@ -96,10 +80,10 @@ window.onkeydown = window.onTouch = function(e){
                         score = 0;
                     }
                     if(isPractice){
-                        scoreArea.innerHTML = "Score: " + score;
+                        scoreArea.textContent = "Score: " + score;
                         displayFeedback('Too late!');
                     } else {
-                        scoreArea.innerHTML = "Score: " + score;
+                        scoreArea.textContent = "Score: " + score;
                         displayFeedback('Wrong!');
                     }
                 }
@@ -109,7 +93,7 @@ window.onkeydown = window.onTouch = function(e){
                     if(score < 0 && !allowNegativeScores){
                         score = 0;
                     }
-                    scoreArea.innerHTML = "Score: " + score;
+                    scoreArea.textContent = "Score: " + score;
                     if(isPractice){
                         displayFeedback('Too early!');
                     }
@@ -118,7 +102,7 @@ window.onkeydown = window.onTouch = function(e){
                     if(score < 0 && !allowNegativeScores){
                         score = 0;
                     }
-                    scoreArea.innerHTML = "Score: " + score;
+                    scoreArea.textContent = "Score: " + score;
                     displayFeedback('Wrong!');
                 }
             }
@@ -127,10 +111,10 @@ window.onkeydown = window.onTouch = function(e){
 }
 
 function displayFeedback(text){
-    feedbackTextArea.innerHTML = text;
+    feedbackTextArea.textContent = text;
     setTimeout(function(){
-        if(feedbackTextArea.innerHTML == text){
-            feedbackTextArea.innerHTML = ''
+        if(feedbackTextArea.textContent == text){
+            feedbackTextArea.textContent = ''
         }
     }, nTextMs);
 }
@@ -186,28 +170,28 @@ function start() {
 function fixationCross(){
     digitDisplayP.style.color = 'black';
     digitDisplayP.style.textDecoration = 'none';
-    digitDisplayP.innerHTML = '\u2022';
+    digitDisplayP.textContent = '\u2022';
     setTimeout(function() {
         if(postFixationMs > 0){
-            digitDisplayP.innerHTML = '';
+            digitDisplayP.textContent = '';
             setTimeout(showDigit, postFixationMs);
         } else {
             showDigit();
         }
-    }, fixationCrossMs);
+    }, fixationMs);
 }
 
 function showDigit(){
-    if(performance.now() - lastTargTime > sayTooLateWithin){
+    if (performance.now() - lastTargTime > sayTooLateWithin) {
         alreadyPressed = false;
     }
     allowPresses = true;
-    if(isPractice){
-        if(stim.isTarg[digitCount]){
+    if (isPractice) {
+        if (stim.isTarg[digitCount]) {
             digitDisplayP.style.color = 'yellow';
             digitDisplayP.style.textDecoration = 'underline';
             digitDisplayP.style.textDecorationColor = 'red';
-            if(!stim.isTarg[digitCount+1]){
+            if (!stim.isTarg[digitCount+1]) {
                 feedbackTextArea.textContent = 'Press now!';
             }
         } else {
@@ -256,7 +240,8 @@ function showBlank(){ // Add to this, otherwise not worth having as its own func
     digitDisplayP.textContent = '';
 }
 
-function afterPracticeScreen(){
+function afterPracticeScreen() {
+    isPractice = false;
     score = 0;
     scoreArea.textContent = "Score: " + score;
     allowPresses = false;
@@ -265,6 +250,31 @@ function afterPracticeScreen(){
     digitDisplayArea.style.display = 'none';
     targetDisplayArea.style.display = 'none';
     feedbackTextArea.style.display = 'none';
+    var centered = document.createElement('center');
+    var startButton = document.createElement('button');
+    startButton.textContent = 'Start game';
+    startButton.onclick = start;
+    instructionsArray =
+        [
+            "That was the end of the practice round",
+            "Now you'll have to look out for 3 sequences",
+            "(they will be shown off to the side in case you forget them)"
+            "3 5 7",
+            "2 4 6",
+            "4 6 8",
+            "Press space as soon as you've seen any of them",
+            "(i.e. press space as soon as you see the last digit)",
+            "React as fast as you can, but avoid making mistakes",
+            "This time the game won't tell you when you're seeing a sequence",
+            "Click to start the game for real"
+        ];
+    var i, currInstructions;
+    for (i = 0; i < instructionsArray; i++) {
+        currInstructions = document.createElement('p');
+        currInstructions.className = 'dialog';
+        currInstructions.textContent = instructionsArray[i];
+        centered.appendChild(currInstructions);
+    }
     dialogArea.innerHTML = "<center>\
                             <p class='dialog'>That was the end of the practice round.<br/>\
                             Now you'll have to look out for 3 sequences<br/>\
@@ -276,19 +286,19 @@ function afterPracticeScreen(){
                             (i.e. press space as soon as you see the last digit).<br/>\
                             React as fast as you can, but avoid making mistakes.</br>\
                             This time the game won't tell you when you're seeing a sequence.\
-                            Click to start the game for real.</p><button onclick='startTask()'>Start game</button>\
+                            Click to start the game for real.</p><button onclick='start()'>Start game</button>\
                             </center>";
 }
 
-function initializeDigits(nTargs,nDigits,targTypes){
-    var maxTargLen = Math.max(...targTypes.map(x => x.length));
+function initializeDigits(nTargs,nDigits,targTypes) {
+    var maxTargLen = Math.max.apply(null, targTypes.map(function(x) {return x.length}));
     var i, j, candTargStart, localDigits = Array(nDigits), isTarg = Array(nDigits).fill(false), targTypeIdx = 0;
-    for(i = 0; i < nTargs; i++){ // Fill out targets
-        while(true){
-            candTargStart = Math.floor(minTargSep + (nDigits-maxTargLen+1 - minTargSep)*Math.random());
-            if(!isTarg.slice(candTargStart-minTargSep,candTargStart).includes(true) &&
-               !isTarg.slice(candTargStart,candTargStart+targTypes[targTypeIdx].length+minTargSep).includes(true)){
-                    for(j = 0; j < targTypes[targTypeIdx].length; j++){
+    for (i = 0; i < nTargs; i++) { // Fill out targets
+        while (true) {
+            candTargStart = Math.floor(minTargSep + (nDigits - maxTargLen+1 - 2*minTargSep)*Math.random());
+            if (!isTarg.slice(candTargStart-minTargSep,candTargStart).includes(true) &&
+                !isTarg.slice(candTargStart,candTargStart+targTypes[targTypeIdx].length+minTargSep).includes(true)) {
+                    for (j = 0; j < targTypes[targTypeIdx].length; j++) {
                         isTarg[candTargStart+j] = true;
                         localDigits[candTargStart+j] = targTypes[targTypeIdx][j];
                     }
@@ -297,8 +307,8 @@ function initializeDigits(nTargs,nDigits,targTypes){
             }
         }
     }
-    for(i = 0; i < localDigits.length; i++){
-        if(!isTarg[i]){
+    for (i = 0; i < localDigits.length; i++) {
+        if (!isTarg[i]) {
             localDigits[i] = sample(legalDigits,1)[0];
         }
     }
@@ -324,7 +334,6 @@ function elimRepeats(gStimArray, indicatorArray, noRptsWithin) {
     }
     return(stimArray);
 }
-
 
 
 function uniqueElements(inArray) {
@@ -408,11 +417,11 @@ function elimSpuriousTargs(gStimArray, gIndicatorArray, targArray) {
     return(stimArray);
 }
 
-function sample(inArray,k) {// Sample k elements without replacement
-	var arrayToSubsample = inArray.slice(0);// Don't alter original array
+function sample(inArray,k) { // Sample k elements without replacement
+	var arrayToSubsample = inArray.slice(0); // Don't alter original array
 	outArray = new Array(k);
 	var i;
-	for(i = 0; i < k; i++){
+	for (i = 0; i < k; i++) {
 		currIdx = Math.floor(Math.random()*arrayToSubsample.length);
 		outArray[i] = arrayToSubsample[currIdx];
 		arrayToSubsample.splice(currIdx,1);
