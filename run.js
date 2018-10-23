@@ -151,6 +151,8 @@ function start() {
             stim.digits = stim.digits.concat(tempStim.digits);
             stim.isTarg = stim.isTarg.concat(tempStim.isTarg);
         }
+        targetDisplayArea.children[1].style.visibility = 'hidden';
+        targetDisplayArea.children[2].style.visibility = 'hidden';
     } else {
         outputText += performance.now().toFixed(nDecPts) + ',' + 'Task start' + ',NewLine,';
         colourDigits = false;
@@ -164,6 +166,8 @@ function start() {
                 stim.isTarg = stim.isTarg.concat(tempStim.isTarg);
             }
         }
+        targetDisplayArea.children[1].style.visibility = 'visible';
+        targetDisplayArea.children[2].style.visibility = 'visible';
     }
     stim.digits = elimRepeats(stim.digits, stim.isTarg, noRptsWithin);
     stim.digits = elimSpuriousTargs(stim.digits, stim.isTarg, taskTargTypes);
@@ -176,63 +180,6 @@ function start() {
         setTimeout(fixationCross, preFixationMs);
     } else {
         fixationCross();
-    }
-}
-
-function startPractice(){
-    outputText += performance.now().toFixed(nDecPts) + ',' + 'Practice start' + ',NewLine,';
-    score = 0;
-    feedbackTextArea.innerHTML = '';
-    ALL.style.cursor = 'none';
-    isPractice = true;
-    // Initialize stim
-    stim.digits = stim.isTarg = [];
-    var i, tempStim;
-    for(i = 0; i < blockwise_nPracticeDgts.length; i++){
-        tempStim = new initializeDigits(blockwise_nPracticeTargs[i],blockwise_nPracticeDgts[i],practiceTargTypes);
-        stim.digits = stim.digits.concat(tempStim.digits);
-        stim.isTarg = stim.isTarg.concat(tempStim.isTarg);
-    }
-    elimSpuriousTargs(stim.digits, stim.isTarg, practiceTargTypes);
-    targetDisplayArea.children[1].style.visibility = 'hidden';
-    targetDisplayArea.children[2].style.visibility = 'hidden';
-    dialogArea.style.display = 'none';
-    digitDisplayArea.style.display = 'block';
-    targetDisplayArea.style.display = 'block';
-    feedbackTextArea.style.display = 'block';
-}
-
-function startTask(){
-    outputText += performance.now().toFixed(nDecPts) + ',' + 'Task start' + ',NewLine,';
-    ALL.style.cursor = 'none';
-    isPractice = false;
-    // Initialize stimuli
-    stim = new initializeDigits(blockwise_nTaskTargs[0],blockwise_nTaskDgts[0],taskTargTypes);
-    if(blockwise_nTaskDgts.length > 1){
-        var i, tempStim;
-        for(i = 1; i < blockwise_nTaskDgts.length; i++){
-            tempStim = new initializeDigits(blockwise_nTaskTargs[i],blockwise_nTaskDgts[i],taskTargTypes);
-            stim.digits = stim.digits.concat(tempStim.digits);
-            stim.isTarg = stim.isTarg.concat(tempStim.isTarg);
-        }
-    }
-    stim.digits = elimRepeats(stim.digits, stim.isTarg, noRptsWithin);
-    stim.digits = elimSpuriousTargs(stim.digits, stim.isTarg, taskTargTypes);
-    colourDigits = false;
-    underlineDigits = false;
-    beepForCorrect = false;
-    // feedbackText = false; We actually do want text feedback
-    targetDisplayArea.children[1].style.visibility = 'visible';
-    targetDisplayArea.children[2].style.visibility = 'visible';
-    dialogArea.style.display = 'none';
-    digitDisplayArea.style.display = 'block';
-    targetDisplayArea.style.display = 'block';
-    feedbackTextArea.style.display = 'block';
-    feedbackTextArea.innerHTML = '';
-    if(nBlanksBeforeFixationCross > 0){
-        window.requestAnimationFrame(function(){wait(nBlanksBeforeFixationCross,fixationCross)});
-    } else {
-        window.requestAnimationFrame(fixationCross);
     }
 }
 
