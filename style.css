@@ -4,6 +4,7 @@
 }
 
 #scoreArea {
+    visibility: hidden;
     position: absolute;
     font-size: 4vmin;
     top: 0;

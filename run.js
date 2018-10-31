@@ -1,7 +1,5 @@
 
-var decoded = decodeURIComponent(window.location.search);
-pID = decoded.substring(decoded.indexOf('=')+1);
-var filename = pID + "RVP";
+var filename; // Code to get your filename goes here
 
 // For 100 digits/minute, per cantab specs, make these two sum to 36
 var nBlanksBeforeFixationCross = 0;
@@ -10,12 +8,8 @@ var fixationMs = 2000;
 var postFixationMs = 600;
 var digitMs = 600;
 var postDigitMs = 0;
-var score;
-var allowNegativeScores = false;
-var nPointsPerCorrect = 40;
-var nPointsPerIncorrect = 20;
 
-var alreadyPressed;
+var alreadyCorrect;
 var allowPresses;
 
 var stim = [];
@@ -31,20 +25,28 @@ var blockwise_nTaskTargs = [16,16];
 var legalDigits = [2,3,4,5,6,7,8,9];
 
 // Variables governing the type of feedback displayed
-var colourDigits = true;
-var underlineDigits = true;
-var beepForCorrect = true;
-var textCues = true;
-var feedbackText = true;
-var pointsFeedback = true;
-var nTextMs = 1000;
+var gamify = false;
+if (gamify) {
+    var score;
+    var allowNegativeScores = false;
+    var nPointsPerCorrect = 40;
+    var nPointsPerIncorrect = 20;
+}
+var colourHints, underliningHints, textHints;
+var timingFeedback, categoricalFeedback, anyFeedback, feedbackTextStopId;
+var responseAllowanceMs = 1800; // These could be named better
+var lateResponseAllowanceMs = 2500;
+var nTextMs = 1000; // Number of ms for which feedback text is displayed
 
-var gamify = true;
 
 var nDecPts = 3;
 
 var ALL = document.getElementsByTagName("html")[0];
-var scoreArea = document.getElementById('scoreArea');
+if (gamify) {
+    var score;
+    var scoreArea = document.getElementById('scoreArea');
+    scoreArea.style.visibility = 'visible';
+}
 var digitDisplayArea = document.getElementById('digitDisplayArea');
 var digitDisplayP = document.getElementById('digitDisplayP');
 var targetDisplayArea = document.getElementById('targetDisplayArea');
@@ -52,67 +54,82 @@ var feedbackTextArea = document.getElementById('feedbackTextArea');
 var dialogArea = document.getElementById('dialogArea');
 var dialogP = document.getElementById('dialogP');
 
-var frameCount = 0;
-var digitCount = 0;
-var score;
+var currDigitCount, nextDigitCount;
 
 var isPractice = true; // Set to false to eliminate the practice round
 
 var lastTargTime;
-var givePosFeedbackWithin = 1800;// ms
-sayTooLateWithin = 2500;
 var outputText = 'Time,Event,NewLine,';
 
-window.onkeydown = window.onTouch = function(e){
-    // Add key press time to event log. Don't worry about whether the response was made quickly enough
-    if(e.code == 'Space' && allowPresses){
-        outputText += e.timeStamp.toFixed(nDecPts) + ',' + e.code + ',NewLine,';
-        if(feedbackText){
-            if(e.timeStamp - lastTargTime < sayTooLateWithin && !alreadyPressed){
-                alreadyPressed = true;
-                if(e.timeStamp - lastTargTime < givePosFeedbackWithin){
-                    score += nPointsPerCorrect;
-                    scoreArea.textContent = "Score: " + score;
-                    displayFeedback('Correct!');
-                } else {
-                    score -= nPointsPerIncorrect;
-                    if(score < 0 && !allowNegativeScores){
-                        score = 0;
-                    }
-                    if(isPractice){
-                        scoreArea.textContent = "Score: " + score;
-                        displayFeedback('Too late!');
-                    } else {
-                        scoreArea.textContent = "Score: " + score;
-                        displayFeedback('Wrong!');
-                    }
-                }
-            } else {
-                if(isPractice && stim.isTarg[digitCount] && stim.isTarg[digitCount+1]){
-                    score -= nPointsPerIncorrect;
-                    if(score < 0 && !allowNegativeScores){
-                        score = 0;
-                    }
-                    scoreArea.textContent = "Score: " + score;
-                    if(isPractice){
-                        displayFeedback('Too early!');
-                    }
-                } else {
-                    score -= nPointsPerIncorrect;
-                    if(score < 0 && !allowNegativeScores){
-                        score = 0;
-                    }
-                    scoreArea.textContent = "Score: " + score;
-                    displayFeedback('Wrong!');
-                }
+function inputHandler(e) {
+    if(allowPresses){
+        var eventText;
+        if (e.constructor.name == 'KeyboardEvent') {
+            eventText = e.code;
+        } else if (e.constructor.name == 'TouchEvent') {
+            eventText = 'TouchEvent';
+        }
+        outputText += e.timeStamp.toFixed(nDecPts) + ',' + eventText + ',NewLine,';
+        if (anyFeedback) {
+            determineFeedback(e.timeStamp);
+        }
+    }
+}
+
+window.addEventListener('keydown', inputHandler, false);
+window.addEventListener('touchstart', inputHandler, false);
+
+function determineFeedback(responseTime) {
+    var correctResponse = false, lateResponse = false, earlyResponse = false, incorrectResponse = false;
+    if (alreadyCorrect) {
+        incorrectResponse = true;
+    } else if (responseTime > lastTargTime
+               && responseTime < lastTargTime + responseAllowanceMs) {
+        correctResponse = true;
+        alreadyCorrect = true;
+        setTimeout(function() {
+            alreadyCorrect = false;
+        }, lastTargTime + lateResponseAllowanceMs - performance.now());
+    } else if (responseTime > lastTargTime
+               && responseTime < lastTargTime + lateResponseAllowanceMs) {
+        lateReponse = true;
+    } else if (stim.isTarg[currDigitCount]) {
+        earlyResponse = true;
+    } else {
+        incorrectResponse = true;
+    }
+    if (gamify) {
+        if (correctResponse) {
+            score += nPointsPerCorrect;
+        } else {
+            score -= nPointsPerIncorrect;
+            if (score < 0 && !allowNegativeScores) {
+                score = 0;
             }
+        }
+        scoreArea.textContent = 'Score: ' + score;
+    }
+    if (timingFeedback && (earlyResponse || lateResponse)) {
+        if (earlyResponse) {
+            displayFeedback('Too soon!');
+        } else if (lateResponse) {
+            displayFeedback('Too late!');
+        }
+    } else if (categoricalFeedback) {
+        if (correctResponse) {
+            displayFeedback('Correct!');
+        } else {
+            displayFeedback('Wrong!');
         }
     }
 }
 
 function displayFeedback(text){
     feedbackTextArea.textContent = text;
-    setTimeout(function(){
+    if (feedbackTextStopId) {
+        clearTimeout(feedbackTextStopId);
+    }
+    feedbackTextStopId = setTimeout(function(){
         if(feedbackTextArea.textContent == text){
             feedbackTextArea.textContent = ''
         }
@@ -120,15 +137,18 @@ function displayFeedback(text){
 }
 
 function start() {
+    nextDigitCount = 0;
     feedbackTextArea.textContent = '';
     ALL.style.cursor = 'none';
     if (gamify) {
         score = 0;
-        feedbackText = true;
+        categoricalFeedback = true;
     }
     stim.digits = stim.isTarg = [];
     var i;
     if (isPractice) {
+        colourHints = underliningHints = textHints = true;
+        categoricalFeedback = timingFeedback = true;
         outputText += performance.now().toFixed(nDecPts) + ',' + 'Practice start' + ',NewLine,';
         for(i = 0; i < blockwise_nPracticeDgts.length; i++){
             tempStim = new initializeDigits(blockwise_nPracticeTargs[i],blockwise_nPracticeDgts[i],practiceTargTypes);
@@ -138,9 +158,9 @@ function start() {
         targetDisplayArea.children[1].style.visibility = 'hidden';
         targetDisplayArea.children[2].style.visibility = 'hidden';
     } else {
+        colourHints = underliningHints = textHints = false;
+        categoricalFeedback = timingFeedback = false;
         outputText += performance.now().toFixed(nDecPts) + ',' + 'Task start' + ',NewLine,';
-        colourDigits = false;
-        underlineDigits = false;
         stim = new initializeDigits(blockwise_nTaskTargs[0],blockwise_nTaskDgts[0],taskTargTypes);
         if(blockwise_nTaskDgts.length > 1){
             var i, tempStim;
@@ -158,6 +178,9 @@ function start() {
     dialogArea.style.display = 'none';
     digitDisplayArea.style.display = 'block';
     targetDisplayArea.style.display = 'block';
+    if (gamify || timingFeedback || categoricalFeedback) {
+        anyFeedback = true;
+    }
     feedbackTextArea.style.display = 'block';
     feedbackTextArea.textContent = '';
     if(preFixationMs > 0){
@@ -182,46 +205,47 @@ function fixationCross(){
 }
 
 function showDigit(){
-    if (performance.now() - lastTargTime > sayTooLateWithin) {
-        alreadyPressed = false;
-    }
-    allowPresses = true;
-    if (isPractice) {
-        if (stim.isTarg[digitCount]) {
-            digitDisplayP.style.color = 'yellow';
-            digitDisplayP.style.textDecoration = 'underline';
-            digitDisplayP.style.textDecorationColor = 'red';
-            if (!stim.isTarg[digitCount+1]) {
-                feedbackTextArea.textContent = 'Press now!';
-            }
-        } else {
-            digitDisplayP.style.color = 'black';
-            digitDisplayP.style.textDecoration = 'none';
-            if(feedbackTextArea.textContent == 'Press now!'){
-                feedbackTextArea.textContent = '';
-            }
-        }
-    }
-    digitDisplayP.textContent = stim.digits[digitCount];
-    digitCount++;
+    currDigitCount = nextDigitCount++;
+    digitDisplayP.textContent = stim.digits[currDigitCount];
     presentationTime = performance.now();
-    if(!isNaN(Number(digitDisplayP.textContent)) && digitDisplayP.textContent != ""){
-        outputText += presentationTime.toFixed(nDecPts) + ',' + digitDisplayP.textContent + ',NewLine,';
-        if(stim.isTarg[digitCount] && !stim.isTarg[digitCount+1]){
-            lastTargTime = presentationTime;
-        }
+    outputText += presentationTime.toFixed(nDecPts) + ',' + digitDisplayP.textContent + ',NewLine,';
+    allowPresses = true;
+    if (stim.isTarg[currDigitCount] && !stim.isTarg[currDigitCount+1]) {
+        lastTargTime = presentationTime;
     }
+    determineHints();
     setTimeout(interTrialCtrlFunc, digitMs);
 }
 
+function determineHints() {
+    if (stim.isTarg[currDigitCount]) {
+        if (colourHints) {
+            digitDisplayP.style.color = 'Yellow';
+        }
+        if (underliningHints) {
+            digitDisplayP.style.textDecoration = 'underline';
+            digitDisplayP.style.textDecorationColor = 'red';
+        }
+        if (!stim.isTarg[currDigitCount+1] && textHints) {
+            feedbackTextArea.textContent = 'Press now!';
+        }
+    } else {
+        digitDisplayP.style.color = 'black';
+        digitDisplayP.style.textDecoration = 'none';
+        if(feedbackTextArea.textContent == 'Press now!'){
+            feedbackTextArea.textContent = '';
+        }
+    }
+}
+
 function interTrialCtrlFunc() {
-    if (digitCount == stim.digits.length) {
+    if (nextDigitCount == stim.digits.length) {
         if (isPractice) {
             feedbackTextArea.textContent = '';
             digitDisplayP.textContent = '';
             digitDisplayP.style.color = 'black';
             digitDisplayP.style.textDecoration = 'none';
-            setTimeout(afterPracticeScreen,sayTooLateWithin);
+            setTimeout(afterPracticeScreen,responseAllowanceMs);
         } else {
             showBlank();
             setTimeout(saveData, sayTooLateWithin);
@@ -242,8 +266,10 @@ function showBlank(){ // Add to this, otherwise not worth having as its own func
 
 function afterPracticeScreen() {
     isPractice = false;
-    score = 0;
-    scoreArea.textContent = "Score: " + score;
+    if (gamify) {
+        score = 0;
+        scoreArea.textContent = "Score: " + score;
+    }
     allowPresses = false;
     ALL.style.cursor = 'default';
     dialogArea.style.display = 'block';
