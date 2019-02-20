@@ -1,7 +1,3 @@
-#bigBr {
-    visibility: hidden;
-    height: calc(25vh + 25vh - 25vmin);
-}
 
 #scoreArea {
     visibility: hidden;

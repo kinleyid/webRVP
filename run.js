@@ -245,10 +245,10 @@ function interTrialCtrlFunc() {
             digitDisplayP.textContent = '';
             digitDisplayP.style.color = 'black';
             digitDisplayP.style.textDecoration = 'none';
-            setTimeout(afterPracticeScreen,responseAllowanceMs);
+            setTimeout(afterPracticeScreen, responseAllowanceMs);
         } else {
             showBlank();
-            setTimeout(saveData, sayTooLateWithin);
+            setTimeout(saveData, lateResponseAllowanceMs);
         }
     } else {
         if (postDigitMs > 0) {
