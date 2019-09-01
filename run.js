@@ -1,5 +1,8 @@
 
-var filename; // Code to get your filename goes here
+// Get worker ID
+var decoded = decodeURIComponent(window.location.search);
+var workerID = decoded.substring(decoded.indexOf('=')+1);
+var filename = workerID + 'RVP';
 
 // For 100 digits/minute, per cantab specs, make these two sum to 36
 var nBlanksBeforeFixationCross = 0;
@@ -59,7 +62,7 @@ var currDigitCount, nextDigitCount;
 var isPractice = true; // Set to false to eliminate the practice round
 
 var lastTargTime;
-var outputText = 'Time,Event,NewLine,';
+var outputText = 'Time,Event\n';
 
 function inputHandler(e) {
     if(allowPresses){
@@ -69,7 +72,7 @@ function inputHandler(e) {
         } else if (e.constructor.name == 'TouchEvent') {
             eventText = 'TouchEvent';
         }
-        outputText += e.timeStamp.toFixed(nDecPts) + ',' + eventText + ',NewLine,';
+        outputText += e.timeStamp.toFixed(nDecPts) + ',' + eventText + '\n';
         if (anyFeedback) {
             determineFeedback(e.timeStamp);
         }
@@ -124,7 +127,7 @@ function determineFeedback(responseTime) {
     }
 }
 
-function displayFeedback(text){
+function displayFeedback(text) {
     feedbackTextArea.textContent = text;
     if (feedbackTextStopId) {
         clearTimeout(feedbackTextStopId);
@@ -149,7 +152,7 @@ function start() {
     if (isPractice) {
         colourHints = underliningHints = textHints = true;
         categoricalFeedback = timingFeedback = true;
-        outputText += performance.now().toFixed(nDecPts) + ',' + 'Practice start' + ',NewLine,';
+        outputText += performance.now().toFixed(nDecPts) + ',' + 'Practice start\n';
         for(i = 0; i < blockwise_nPracticeDgts.length; i++){
             tempStim = new initializeDigits(blockwise_nPracticeTargs[i],blockwise_nPracticeDgts[i],practiceTargTypes);
             stim.digits = stim.digits.concat(tempStim.digits);
@@ -160,7 +163,7 @@ function start() {
     } else {
         colourHints = underliningHints = textHints = false;
         categoricalFeedback = timingFeedback = false;
-        outputText += performance.now().toFixed(nDecPts) + ',' + 'Task start' + ',NewLine,';
+        outputText += performance.now().toFixed(nDecPts) + ',' + 'Task start\n';
         stim = new initializeDigits(blockwise_nTaskTargs[0],blockwise_nTaskDgts[0],taskTargTypes);
         if(blockwise_nTaskDgts.length > 1){
             var i, tempStim;
@@ -208,7 +211,7 @@ function showDigit(){
     currDigitCount = nextDigitCount++;
     digitDisplayP.textContent = stim.digits[currDigitCount];
     presentationTime = performance.now();
-    outputText += presentationTime.toFixed(nDecPts) + ',' + digitDisplayP.textContent + ',NewLine,';
+    outputText += presentationTime.toFixed(nDecPts) + ',' + digitDisplayP.textContent + '\n';
     allowPresses = true;
     if (stim.isTarg[currDigitCount] && !stim.isTarg[currDigitCount+1]) {
         lastTargTime = presentationTime;
@@ -248,7 +251,7 @@ function interTrialCtrlFunc() {
             setTimeout(afterPracticeScreen, responseAllowanceMs);
         } else {
             showBlank();
-            setTimeout(saveData, lateResponseAllowanceMs);
+            setTimeout(function() {saveDataAndRedirect(filename, outputText, workerID)}, lateResponseAllowanceMs);
         }
     } else {
         if (postDigitMs > 0) {
@@ -475,4 +478,26 @@ function findIndices(array, element) {
         }
     }
     return(indices);
+}
+
+function saveDataAndRedirect(filename, txt, pID) {
+    filename = 'Data/' + filename;
+	var form = document.createElement('form');
+    document.body.appendChild(form);
+    form.method = 'post';
+	form.action = 'saveData.php';
+	var data = {
+		filename: filename,
+		txt: txt,
+		pID: pID
+	}
+	var name;
+    for (name in data) {
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = data[name];
+        form.appendChild(input);
+    }
+    form.submit();
 }
